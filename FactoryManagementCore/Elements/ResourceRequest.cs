@@ -19,7 +19,7 @@ namespace FactoryManagementCore.Elements
                 RequestChanged?.Invoke();
             }
         }
-        public bool IsSatisfied;
+        public virtual bool IsSatisfied { get; set; }
 
         public event Action RequestChanged;
 
@@ -40,6 +40,11 @@ namespace FactoryManagementCore.Elements
         public bool HasSameResource(ResourceRequest other)
         {
             return Resource == other.Resource;
+        }
+
+        public ResourceRequest Clone()
+        {
+            return new ResourceRequest(Resource, CountPerMinute);
         }
 
         public static CombinedResourceRequest operator +(ResourceRequest left, ResourceRequest right)

@@ -31,7 +31,7 @@ namespace FactoryManagementCore.Production
             UpdateIO();
         }
 
-        
+
         private void UpdateIO()
         {
             _inputs.Clear();
@@ -96,6 +96,7 @@ namespace FactoryManagementCore.Production
 
             unit.ProductionRequest.IsSatisfied = false;
             _productionUnits.Remove(unit);
+            unit.Dispose();
 
             UpdateIO();
         }

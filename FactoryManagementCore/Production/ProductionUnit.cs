@@ -1,7 +1,6 @@
 ﻿using FactoryManagementCore.Elements;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace FactoryManagementCore.Production
 {
@@ -30,5 +29,13 @@ namespace FactoryManagementCore.Production
         }
 
         protected abstract double GetMachinesCount();
+
+
+        public virtual void Dispose()
+        {
+            ProductionRequest.RequestChanged -= UpdateIO;
+            if (ProductionRequest is CombinedResourceRequest request) request.Dispose();
+            foreach (var input in _inputs) input.CountPerMinute = 0;
+        }
     }
 }

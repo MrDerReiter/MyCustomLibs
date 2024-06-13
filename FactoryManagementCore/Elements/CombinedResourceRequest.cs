@@ -18,6 +18,17 @@ namespace FactoryManagementCore.Elements
                      "оно может быть задано только изменением значений вложенных запросов.");
             }
         }
+        public override bool IsSatisfied 
+        { 
+            get => base.IsSatisfied;
+            set
+            {
+                base.IsSatisfied = value;
+                foreach (var request in _sourceRequests) 
+                    request.IsSatisfied = value;
+            } 
+        }
+
 
         public CombinedResourceRequest(params ResourceRequest[] sourceRequests) : base(sourceRequests[0].Resource, 0)
         { 
@@ -33,6 +44,14 @@ namespace FactoryManagementCore.Elements
             RaiseRequestChanged();
         }
 
+
+        public void Dispose()
+        {
+            foreach (var request in _sourceRequests)
+                request.RequestChanged -= Update;
+
+            _sourceRequests.Clear();
+        }
 
         public ResourceRequest ToSingleRequest()
         {
