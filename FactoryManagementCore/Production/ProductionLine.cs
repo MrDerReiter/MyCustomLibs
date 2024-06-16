@@ -14,7 +14,6 @@ namespace FactoryManagementCore.Production
         public List<ResourceStream> Inputs { get; } = new List<ResourceStream>();
         public List<ResourceStream> Outputs { get; } = new List<ResourceStream>();
 
-
         private void UpdateIO()
         {
             Inputs.Clear();
@@ -82,6 +81,11 @@ namespace FactoryManagementCore.Production
                             break;
                         }
                     }
+
+            //удаление продуктов которые должны быть равны нулю, но не равны из-за погрешности рассчётов в формате double
+            for (int i = 0; i < Outputs.Count; i++)
+                if (Outputs[i].CountPerMinute < 0.001)
+                    Outputs.RemoveAt(i--);
         }
 
 
