@@ -1,4 +1,5 @@
 ﻿using FactoryManagementCore.Interfaces;
+using FactoryManagementCore.Elements;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -21,7 +22,7 @@ namespace FactoryManagementCore.Production
                 return _productionLines;
             }
         }
-        public static IRecipeProvider RecipeProvider { get; private set; }
+        public static IRecipeProvider<Recipe> RecipeProvider { get; private set; }
         public static INameTranslator NameTranslator { get; private set; }
         public static ProductionLine LastLine { get => _productionLines.Last(); }
         public static ProductionLine ActiveLine
@@ -46,7 +47,7 @@ namespace FactoryManagementCore.Production
 
 
         public static void Initialize<TRecipeProvider, TSaveLoadManager, TNameTranslator>()
-            where TRecipeProvider : IRecipeProvider, new()
+            where TRecipeProvider : IRecipeProvider<Recipe>, new()
             where TSaveLoadManager : IFactorySaveLoadManager, new()
             where TNameTranslator : INameTranslator, new()
         {
