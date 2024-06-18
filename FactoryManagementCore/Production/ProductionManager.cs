@@ -12,7 +12,7 @@ namespace FactoryManagementCore.Production
         private static IFactorySaveLoadManager _saveLoadManager;
         private static ProductionLine _activeLine;
         private static BindingList<ProductionLine> _productionLines;
-        private static bool IsDependenciesAlreadyInjected;
+        private static bool IsDependenciesInjected;
 
         public static IReadOnlyList<ProductionLine> ProductionLines
         {
@@ -39,7 +39,7 @@ namespace FactoryManagementCore.Production
 
         private static void CheckDependencies()
         {
-            if (!IsDependenciesAlreadyInjected)
+            if (!IsDependenciesInjected)
                 throw new InvalidOperationException
                     ("Менеджер производства не инициализирован, " +
                     "сначала вызовите метод Initialize и передайте ему нужные зависимости");
@@ -58,7 +58,7 @@ namespace FactoryManagementCore.Production
             var savedData = _saveLoadManager.LoadFactory();
             _productionLines = new BindingList<ProductionLine>(savedData);
 
-            IsDependenciesAlreadyInjected = true;
+            IsDependenciesInjected = true;
         }
 
         public static void AddProductionLine(ProductionLine line)
