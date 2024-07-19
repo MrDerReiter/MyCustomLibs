@@ -2,7 +2,6 @@
 {
     public abstract class Recipe
     {
-        public int Id { get; set; } //ID в базе данных
         public string Name { get; }
         public string Machine { get; }
         public ResourceStream[] Inputs { get; }

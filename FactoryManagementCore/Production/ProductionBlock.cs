@@ -11,7 +11,6 @@ namespace FactoryManagementCore.Production
         private readonly List<ResourceStream> _outputs = new List<ResourceStream>();
         private readonly List<ProductionUnit> _productionUnits = new List<ProductionUnit>();
 
-        public int Id { get; set; } //ID в базе данных
         public IReadOnlyList<ProductionUnit> ProductionUnits { get => _productionUnits; }
         public ProductionUnit MainProductionUnit { get => _productionUnits[0]; }
         public ResourceRequest ProductionRequest { get; }

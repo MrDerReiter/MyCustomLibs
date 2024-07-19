@@ -8,7 +8,6 @@ namespace FactoryManagementCore.Production
     {
         private readonly List<ProductionBlock> _productionBlocks = new List<ProductionBlock>();
 
-        public int Id { get; set; } //ID в базе данных
         public IReadOnlyList<ProductionBlock> ProductionBlocks { get => _productionBlocks; }
         public ProductionBlock MainProductionBlock { get => _productionBlocks[0]; }
         public List<ResourceStream> Inputs { get; } = new List<ResourceStream>();

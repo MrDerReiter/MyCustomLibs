@@ -9,7 +9,6 @@ namespace FactoryManagementCore.Production
         protected ResourceRequest[] _inputs;
         protected ResourceStream[] _outputs;
 
-        public int Id { get; set; } //ID в базе данных
         public virtual Recipe Recipe { get; }
         public string Machine { get => Recipe.Machine; }
         public double MachinesCount { get => GetMachinesCount(); }

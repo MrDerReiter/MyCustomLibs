@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using FactoryManagementCore.Services;
 
 namespace FactoryManagementCore.Production
 {
@@ -46,14 +47,13 @@ namespace FactoryManagementCore.Production
         }
 
 
-        public static void Initialize<TRecipeProvider, TSaveLoadManager, TNameTranslator>()
+        public static void Initialize<TRecipeProvider, TSaveLoadManager>()
             where TRecipeProvider : IRecipeProvider<Recipe>, new()
             where TSaveLoadManager : IFactorySaveLoadManager, new()
-            where TNameTranslator : INameTranslator, new()
         {
             RecipeProvider = new TRecipeProvider();
             _saveLoadManager = new TSaveLoadManager();
-            NameTranslator = new TNameTranslator();
+            NameTranslator = new NameTranslator();
 
             var savedData = _saveLoadManager.LoadFactory();
             _productionLines = new BindingList<ProductionLine>(savedData);
