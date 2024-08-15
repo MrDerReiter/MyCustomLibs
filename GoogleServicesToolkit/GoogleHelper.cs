@@ -273,5 +273,23 @@ namespace GoogleServicesToolkit
 
             return response.UpdatedCells == counter;
         }
+
+        /// <summary>
+        /// Сохраняет выбранную таблицу целиком в локальный файл xslx.
+        /// по указанному пути. Если указано только имя файла (обязательно с расширением), он
+        /// будет сохранён в исполняемом каталоге приложения.
+        /// </summary>
+        /// <param name="path"></param>
+        public void DownloadSpreadsheet(string path)
+        {
+            CheckInitialized(false);
+
+            using (var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write))
+            {
+                var request = _driveService.Files.Get(_activeSpreadsheetID);
+                request.Download(fileStream);
+                fileStream.Flush();
+            }
+        }
     }
 }

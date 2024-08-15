@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -11,7 +10,7 @@ namespace GoogleServicesToolkit
     /// и соответствующие методы доступа к ним. 
     /// Её экземпляр нельзя создать напрямую, только получить в ответ на запрос.
     /// </summary>
-    public class TableObject : IEnumerable<List<string>>
+    public class TableObject
     {
         /// <summary>
         /// Инкапсулирует внутренний двухуровневый список строковых значений, для более удобного
@@ -44,6 +43,28 @@ namespace GoogleServicesToolkit
         /// Количество столбцов в таблице.
         /// </summary>
         public int ColumnsCount => IsNotEmpty ? MaxRowLength() : 0;
+        /// <summary>
+        /// Возвращает все ряды таблицы в виде последовательности ReadOnly-списков.
+        /// </summary>
+        public IEnumerable<IReadOnlyList<string>> Rows
+        {
+            get
+            {
+                foreach (var item in _content)
+                    yield return item;
+            }
+        }
+        /// <summary>
+        /// Возвращает все столбцы таблицы в виде последовательности ReadOnly-списков.
+        /// </summary>
+        public IEnumerable<IReadOnlyList<string>> Columns 
+        { 
+            get
+            {
+                for (int i = 0; i < MaxRowLength(); i++)
+                    yield return GetColumn(i);
+            }
+        }
 
         /// <summary>
         /// Возвращает содержимое указанной ячеки 
@@ -139,7 +160,7 @@ namespace GoogleServicesToolkit
         /// как ширину таблицы в столбцах. Значение столбца больше или равное этому 
         /// однозначно будет находиться за пределами таблицы. Меньшее значение 
         /// может быть интерпретировано как находящееся в пределах таблицы, но фактически в 
-        /// некоторых списках элемента соответсвующего этому столбцу может и не быть.
+        /// некоторых списках элемента соответствующего этому столбцу может и не быть.
         /// </summary>
         /// <returns></returns>
         protected int MaxRowLength()
@@ -161,7 +182,7 @@ namespace GoogleServicesToolkit
             if (!IsValidRow(row)) 
                 throw new ArgumentOutOfRangeException("Строки с таким индексом нет в таблице.");
 
-            return _content[row];
+            return new List<string>(_content[row]);
         }
 
         /// <summary>
@@ -195,16 +216,6 @@ namespace GoogleServicesToolkit
             }
 
             return result;
-        }
-
-        public IEnumerator<List<string>> GetEnumerator()
-        {
-            return _content.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _content.GetEnumerator();
         }
     }
 }
