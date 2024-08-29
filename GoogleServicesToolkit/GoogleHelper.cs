@@ -32,10 +32,10 @@ namespace GoogleServicesToolkit
 
         private readonly DriveService _driveService;
         private readonly SheetsService _sheetsService;
-        private static readonly string[] _scopes = new string[] 
-        { 
-            DriveService.Scope.Drive, 
-            SheetsService.Scope.Spreadsheets 
+        private static readonly string[] _scopes = new string[]
+        {
+            DriveService.Scope.Drive,
+            SheetsService.Scope.Spreadsheets
         };
         private IConfigurableHttpClientInitializer _credentials;
         private string _activeSpreadsheetID;
@@ -127,17 +127,41 @@ namespace GoogleServicesToolkit
         /// <summary>
         /// Устанавливает таблицу, которая будет использоваться в последующих запросах. 
         /// Таблица определяется по её видимому названию, под которым она хранится на GoogleDrive. 
+        /// Не работает при авторизации через сервисный аккаунт (будет выброшено исключение).
         /// Поддерживает Method Chaining.
         /// </summary>
         /// <param name="spreadsheetName"></param>
         /// <returns></returns>
         public GoogleHelper SetSpreadsheet(string spreadsheetName)
         {
+            if (_authType != AuthType.AsUser)
+                throw new InvalidOperationException
+                    ("Невозможно найти таблицу по её названию при текущем типе авторизации, " +
+                    "т.к. нет доступа к GoogleDrive конкретного клиента. " +
+                    "Требуется тип авторизации AuthType.AsUser либо установка таблицы по её ID " +
+                    "через соответсвующий метод.");
+
             var response = _driveService.Files.List().Execute();
 
             _activeSpreadsheetID =
                 response.Files
                 .First(file => file.Name == spreadsheetName).Id;
+            return this;
+        }
+
+        /// <summary>
+        /// Устанавливает таблицу, которая будет использоваться в последующих запросах. 
+        /// Таблица определяется по её ID (отображается, например, в адресной строке браузера), 
+        /// под которым она хранится на GoogleDrive владельца.
+        /// Данный метод используется как альтернатива SetSpreadsheet при работе
+        /// через сервисный аккаунт, когда нет доступа к GoogleDrive клиента.
+        /// Поддерживает Method Chaining.
+        /// </summary>
+        /// <param name="spreadsheetID"></param>
+        /// <returns></returns>
+        public GoogleHelper SetSpreadsheetID(string spreadsheetID)
+        {
+            _activeSpreadsheetID = spreadsheetID;
             return this;
         }
 
@@ -254,7 +278,7 @@ namespace GoogleServicesToolkit
             string range = $"{_activeSheetName}!{startCellID}:{endCellID}";
             var list = new List<List<object>>();
             int counter = 0;
-            foreach (var item in data)
+            foreach (var item in data.Rows)
             {
                 list.Add(new List<object>(item));
                 counter += item.Count;
@@ -275,8 +299,9 @@ namespace GoogleServicesToolkit
         }
 
         /// <summary>
-        /// Сохраняет выбранную таблицу целиком в локальный файл xslx.
-        /// по указанному пути. Если указано только имя файла (обязательно с расширением), он
+        /// Сохраняет выбранную таблицу целиком в локальный файл xlsx.,
+        /// по указанному пути (с расширением файла). 
+        /// Если указано только имя файла, он
         /// будет сохранён в исполняемом каталоге приложения.
         /// </summary>
         /// <param name="path"></param>
@@ -284,10 +309,23 @@ namespace GoogleServicesToolkit
         {
             CheckInitialized(false);
 
+            var fileMetadata = _driveService.Files.Get(_activeSpreadsheetID).Execute();
             using (var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write))
             {
-                var request = _driveService.Files.Get(_activeSpreadsheetID);
-                request.Download(fileStream);
+                if (fileMetadata.MimeType == "application/vnd.google-apps.spreadsheet")
+                {
+                    // Если обычная таблица Google
+                    var request = _driveService.Files.Export(_activeSpreadsheetID, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                    request.Download(fileStream);
+                }
+                else if (fileMetadata.MimeType == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                {
+                    // Если файл в формате XLSX
+                    var request = _driveService.Files.Get(_activeSpreadsheetID);
+                    request.Download(fileStream);
+                }
+                else throw new InvalidOperationException("Неопознанный формат скачиваемой таблицы.");
+
                 fileStream.Flush();
             }
         }
