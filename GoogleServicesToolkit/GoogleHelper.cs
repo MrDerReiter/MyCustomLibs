@@ -42,22 +42,41 @@ namespace GoogleServicesToolkit
         private string _activeSheetName;
         private AuthType _authType;
 
+
         /// <summary>
         /// Создаёт новый обьект GoogleSheetsHelper с заданным названием приложения
         /// (переменная, необходимая для внутреннего использования API)
-        /// и загружающий данные для авторизации из заданного файла .json 
-        /// (должен находиться в папке с исполняемым файлом).
+        /// и загружающий данные для авторизации из заданного файла .json.
         /// Также нужно указать тип авторизации для приложения (реквизиты авторизации в файле
         /// должны соответстовать данному типу авторизации).
         /// </summary>
         /// <param name="appName"></param>
-        /// <param name="credentialFileName"></param>
+        /// <param name="credentialFile"></param>
         /// <param name="authType"></param>
-        public GoogleHelper(string appName, string credentialFileName, AuthType authType)
+        public GoogleHelper(string appName, FileInfo credentialFile, AuthType authType)
         {
             AppName = appName;
             _authType = authType;
-            _credentials = GetCredentialFromFileAsync(credentialFileName).Result;
+            _credentials = GetCredentialFromJsonFileAsync(credentialFile).Result;
+            _driveService = InitializeDriveService();
+            _sheetsService = InitializeSheetsService();
+        }
+
+        /// <summary>
+        /// Создаёт новый обьект GoogleSheetsHelper с заданным названием приложения
+        /// (переменная, необходимая для внутреннего использования API)
+        /// и загружающий данные для авторизации из строки в формате .json.
+        /// Также нужно указать тип авторизации для приложения (реквизиты авторизации в строке
+        /// должны соответстовать данному типу авторизации).
+        /// </summary>
+        /// <param name="appName"></param>
+        /// <param name="jsonContent"></param>
+        /// <param name="authType"></param>
+        public GoogleHelper(string appName, string jsonContent, AuthType authType)
+        {
+            AppName = appName;
+            _authType = authType;
+            _credentials = GetCredentialFromJsonAsync(jsonContent).Result;
             _driveService = InitializeDriveService();
             _sheetsService = InitializeSheetsService();
         }
@@ -85,12 +104,12 @@ namespace GoogleServicesToolkit
             return service;
         }
 
-        private async Task<IConfigurableHttpClientInitializer> GetCredentialFromFileAsync(string fileName)
+        private async Task<IConfigurableHttpClientInitializer> GetCredentialFromJsonFileAsync(FileInfo jsonFile)
         {
             switch (_authType)
             {
                 case AuthType.AsServiceAccount:
-                    using (var stream = new FileStream(fileName, FileMode.Open, FileAccess.Read))
+                    using (var stream = jsonFile.OpenRead())
                     {
                         var accountCredential = GoogleCredential.FromStream(stream).CreateScoped(_scopes);
                         return accountCredential;
@@ -99,9 +118,39 @@ namespace GoogleServicesToolkit
                 case AuthType.AsUser:
                     var userCredential =
                         await GoogleWebAuthorizationBroker.AuthorizeAsync(
-                        GoogleClientSecrets.FromFile(fileName).Secrets, _scopes, "user",
+                        GoogleClientSecrets.FromFile(jsonFile.FullName).Secrets, _scopes, "user",
                         CancellationToken.None, new FileDataStore("CredentialData"));
                     return userCredential;
+
+                default:
+                    throw new ArgumentException($"Недопустимое значение параметра AuthType: {_authType}");
+            }
+        }
+
+        private async Task<IConfigurableHttpClientInitializer> GetCredentialFromJsonAsync(string jsonContent)
+        {
+            switch (_authType)
+            {
+                case AuthType.AsServiceAccount:
+
+                    var accountCredential = GoogleCredential.FromJson(jsonContent).CreateScoped(_scopes);
+                    return accountCredential;
+
+                case AuthType.AsUser:
+
+                    using (var stream = new MemoryStream())
+                    {
+                        var writer = new StreamWriter(stream);
+                        writer.Write(jsonContent);
+                        writer.Flush();
+
+                        var userCredential =
+                            await GoogleWebAuthorizationBroker.AuthorizeAsync(
+                            GoogleClientSecrets.FromStream(stream).Secrets, _scopes, "user",
+                            CancellationToken.None, new FileDataStore("CredentialData"));
+
+                        return userCredential;
+                    }
 
                 default:
                     throw new ArgumentException($"Недопустимое значение параметра AuthType: {_authType}");
@@ -299,13 +348,13 @@ namespace GoogleServicesToolkit
         }
 
         /// <summary>
-        /// Сохраняет выбранную таблицу целиком в локальный файл xlsx.,
+        /// Сохраняет выбранную таблицу целиком в локальный файл .xlsx,
         /// по указанному пути (с расширением файла). 
         /// Если указано только имя файла, он
         /// будет сохранён в исполняемом каталоге приложения.
         /// </summary>
         /// <param name="path"></param>
-        public void DownloadSpreadsheet(string path)
+        public void DownloadToFile(string path)
         {
             CheckInitialized(false);
 
@@ -324,10 +373,39 @@ namespace GoogleServicesToolkit
                     var request = _driveService.Files.Get(_activeSpreadsheetID);
                     request.Download(fileStream);
                 }
-                else throw new InvalidOperationException("Неопознанный формат скачиваемой таблицы.");
+                else throw new InvalidOperationException("Неопознанный формат загружаемой таблицы.");
 
                 fileStream.Flush();
             }
+        }
+
+        /// <summary>
+        /// Сохраняет таблицу целиком в формате .xlsx в MemoryStream и возвращает целевой поток.
+        /// </summary>
+        /// <returns></returns>
+        public MemoryStream DownloadToStream()
+        {
+            CheckInitialized(false);
+
+            var fileMetadata = _driveService.Files.Get(_activeSpreadsheetID).Execute();
+            var memoryStream = new MemoryStream();
+
+
+            if (fileMetadata.MimeType == "application/vnd.google-apps.spreadsheet")
+            {
+                // Если обычная таблица Google
+                var request = _driveService.Files.Export(_activeSpreadsheetID, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                request.Download(memoryStream);
+            }
+            else if (fileMetadata.MimeType == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            {
+                // Если файл в формате XLSX
+                var request = _driveService.Files.Get(_activeSpreadsheetID);
+                request.Download(memoryStream);
+            }
+            else throw new InvalidOperationException("Неопознанный формат загружаемой таблицы.");
+
+            return memoryStream;
         }
     }
 }
