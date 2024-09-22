@@ -176,6 +176,10 @@ namespace GoogleServicesToolkit
         private DataTable ParseRange(IList<IList<object>> range)
         {
             var table = new DataTable();
+            var columnsCount = range.Select(list => list.Count()).Max();
+
+            for (int i = 0; i < columnsCount; i++)
+                table.Columns.Add();
 
             foreach (var list in range)
                 table.Rows.Add(list);
