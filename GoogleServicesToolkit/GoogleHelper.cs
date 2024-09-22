@@ -7,6 +7,7 @@ using Google.Apis.Sheets.v4.Data;
 using Google.Apis.Util.Store;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -172,6 +173,16 @@ namespace GoogleServicesToolkit
                         "Сначала проинициализируйте обьект GoogleHelper методом SetSpreadsheet");
         }
 
+        private DataTable ParseRange(IList<IList<object>> range)
+        {
+            var table = new DataTable();
+
+            foreach (var list in range)
+                table.Rows.Add(list);
+
+            return table;
+        }
+
 
         /// <summary>
         /// Устанавливает таблицу, которая будет использоваться в последующих запросах. 
@@ -230,7 +241,7 @@ namespace GoogleServicesToolkit
         /// Получает данные из прямоугольного диапазона ячеек таблицы, заданного 
         /// индексами верхней левой и правой нижней ячейки диапазона в том-же формате, что используется 
         /// непосредственно в таблице (A1, B4 и т.п.). 
-        /// Данные возвращаются в виде объекта TableObject (см. описание соответствующего класса). 
+        /// Данные возвращаются в виде объекта System.Data.DataTable. 
         /// Перед запросом обязательно нужно выбрать таблицу и лист, 
         /// из которых нужно получить данные (методы SetSpreadsheet/SetSheet), 
         /// в противном случае метод выбросит исключение. Также исключение будет выброшено при 
@@ -240,7 +251,7 @@ namespace GoogleServicesToolkit
         /// <param name="endCellID"></param>
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
-        public TableObject GetFromRange(string startCellID, string endCellID)
+        public DataTable GetFromRange(string startCellID, string endCellID)
         {
             CheckInitialized(true);
 
@@ -249,7 +260,7 @@ namespace GoogleServicesToolkit
 
             var response = request.Execute();
 
-            return new TableObject(response.Values);
+            return ParseRange(response.Values);
         }
 
         /// <summary>
@@ -320,17 +331,17 @@ namespace GoogleServicesToolkit
         /// <param name="startCellID"></param>
         /// <param name="endCellID"></param>
         /// <returns></returns>
-        public bool InsertRange(TableBuilder data, string startCellID, string endCellID)
+        public bool InsertRange(DataTable data, string startCellID, string endCellID)
         {
             CheckInitialized(true);
 
             string range = $"{_activeSheetName}!{startCellID}:{endCellID}";
             var list = new List<List<object>>();
             int counter = 0;
-            foreach (var item in data.Rows)
+            foreach (DataRow item in data.Rows)
             {
-                list.Add(new List<object>(item));
-                counter += item.Count;
+                list.Add(new List<object>(item.ItemArray));
+                counter += item.ItemArray.Length;
             }
 
             var body = new ValueRange() { Values = new List<IList<object>>(list) };

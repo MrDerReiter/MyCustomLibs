@@ -69,8 +69,6 @@
     <Compile Include="AuthType.cs" />
     <Compile Include="GoogleHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TableBuilder.cs" />
-    <Compile Include="TableObject.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
