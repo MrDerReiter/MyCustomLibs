@@ -24,7 +24,7 @@ namespace FactoryManagementCore.Interfaces
         IEnumerable<TRecipe> GetAllRecipiesOfCategory(string category);
 
         /// <summary>
-        /// Возвращает перечисление всех рецептов, имеющих указанный ресурс в качестве основного или побочного продукта.
+        /// Возвращает перечисление всех рецептов, имеющих указанный ресурс в качестве основного продукта.
         /// </summary>
         /// <param name="product"></param>
         /// <returns></returns>

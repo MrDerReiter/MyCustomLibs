@@ -5,21 +5,61 @@ using System.Linq;
 
 namespace FactoryManagementCore.Production
 {
+    /// <summary>
+    /// Инкапсулирует группу производственных цехов,
+    /// обьединённых общим производственным запросом, который они ступенчато реализуют,
+    /// от более сложных компонентов к более простым.
+    /// </summary>
     public class ProductionBlock
     {
-        private readonly List<ResourceRequest> _inputs = new List<ResourceRequest>();
-        private readonly List<ResourceStream> _outputs = new List<ResourceStream>();
-        private readonly List<ProductionUnit> _productionUnits = new List<ProductionUnit>();
+        private readonly List<ResourceRequest> _inputs = [];
+        private readonly List<ResourceStream> _outputs = [];
+        private readonly List<ProductionUnit> _productionUnits = [];
 
+        /// <summary>
+        /// Возвращает контрольный список (только для чтения) цехов данного блока,
+        /// включая основной (он всегда будет первым в списке).
+        /// </summary>
         public IReadOnlyList<ProductionUnit> ProductionUnits { get => _productionUnits; }
+        /// <summary>
+        /// Возвращает основной цех производственного блока, который непосредственно
+        /// удовлетворяет производственный запрос блока (он будет общим и для блока,
+        /// и для основного цеха). С него начинается всё дерево запросов производственного блока.
+        /// Этот цех нельзя удалить, т.к. без него весь производственный блок не имеет смысла.
+        /// </summary>
         public ProductionUnit MainProductionUnit { get => _productionUnits[0]; }
+        /// <summary>
+        /// Возвращает производственный запрос блока
+        /// (т.е. запрос, который он должен удовлетворять, выдавая эквивалентный продукт на выходе).
+        /// </summary>
         public ResourceRequest ProductionRequest { get; }
+        /// <summary>
+        /// Возвращает список всех производственных запросов блока, которые не были
+        /// удовлетворены непосредственно в нём (т.е. в блоке ещё нет цехов, которые-бы выполняли этот запрос).
+        /// </summary>
         public IReadOnlyList<ResourceRequest> Inputs { get => _inputs; }
+        /// <summary>
+        /// Возвращает список (только для чтения) всей продукции,
+        /// производимых в данном блоке.
+        /// Первая позиция в списке всегда эквивалентна запросу производственного блока.
+        /// </summary>
         public IReadOnlyList<ResourceStream> Outputs { get => _outputs; }
 
+        /// <summary>
+        /// Происходит при обновлении данных производственного блока,
+        /// когда изменяются входные значения запросов одного или более цехов,
+        /// и требуется обновить все производственные рассчёты.
+        /// </summary>
         public event Action IOChanged;
 
 
+        /// <summary>
+        /// Создаёт новый производственный блок, используя указанный цех в
+        /// качестве основного. Цех не создаётся в конструкторе производственного блока,
+        /// т.к. конкретная реализация производственного цеха должна быть
+        /// определена вызывающим кодом.
+        /// </summary>
+        /// <param name="unit"></param>
         public ProductionBlock(ProductionUnit unit)
         {
             ProductionRequest = unit.ProductionRequest;
@@ -75,6 +115,11 @@ namespace FactoryManagementCore.Production
         }
 
 
+        /// <summary>
+        /// Добавляет указанный производственный цех в контрольный список
+        /// и производит необходимые операции привязки.
+        /// </summary>
+        /// <param name="unit"></param>
         public void AddProductionUnit(ProductionUnit unit)
         {
             unit.ProductionRequest.IsSatisfied = true;
@@ -83,6 +128,13 @@ namespace FactoryManagementCore.Production
             UpdateIO();
         }
 
+        /// <summary>
+        /// Удаляет указанный производственный цех из контрольного списка. Выбрасывает исключение,
+        /// если указанного цеха нет в списке, или если этот цех является основным
+        /// (т.к. без него производственный блок теряет всякий смысл).
+        /// </summary>
+        /// <param name="unit"></param>
+        /// <exception cref="InvalidOperationException"></exception>
         public void RemoveProductionUnit(ProductionUnit unit)
         {
             if (!_productionUnits.Contains(unit))
@@ -99,5 +151,20 @@ namespace FactoryManagementCore.Production
 
             UpdateIO();
         }
+
+        #region Вспомогательные методы
+        /// <summary>
+        /// Вспомогательный метод для внешнего вызова события IOChanged.
+        /// В большинстве случаев оно вызывается само, когда это нужно;
+        /// используйте внешний вызов только в крайнем случае
+        /// (например, если вызывающий код реализует специфический функционал,
+        /// который не может быть размещён в самом классе ProductionBlock,
+        /// но требует вызов этого события, и не может быть реализован иначе).
+        /// </summary>
+        public void RaiseIOChanged()
+        {
+            IOChanged?.Invoke();
+        }
+        #endregion
     }
 }

@@ -4,13 +4,34 @@ using System.Linq;
 
 namespace FactoryManagementCore.Production
 {
+    /// <summary>
+    /// Вполняет роль контейнера для нескольких производственных блоков,
+    /// и позволяет отслеживать суммы их входных/выходных ресурсов.
+    /// </summary>
     public class ProductionLine
     {
         private readonly List<ProductionBlock> _productionBlocks = new List<ProductionBlock>();
 
+        /// <summary>
+        /// Вохвращает контрольный список (только для чтения) всех производственных блоков,
+        /// размещённых в этой линии.
+        /// </summary>
         public IReadOnlyList<ProductionBlock> ProductionBlocks { get => _productionBlocks; }
+        /// <summary>
+        /// Возвращает первый блок производственной линии. Он является контрольным,
+        /// с него начинается процесс создания производственной линии.
+        /// </summary>
         public ProductionBlock MainProductionBlock { get => _productionBlocks[0]; }
+        /// <summary>
+        /// Возвращает список всех входных ресурсов производственной линии
+        /// в виде объектов ResourceStream. Идентичные входные потоки ресурсов объединяются.
+        /// </summary>
         public List<ResourceStream> Inputs { get; } = new List<ResourceStream>();
+        /// <summary>
+        /// Возвращает список всех выходных ресурсов производственной линии
+        /// в виде списка объектов ResourceStream. Идентичные выходные потоки ресурсов
+        /// объединяются. Идентичные потоки выходных и входных ресурсов взаимно компенсируются.
+        /// </summary>
         public List<ResourceStream> Outputs { get; } = new List<ResourceStream>();
 
         private void UpdateIO()
@@ -88,12 +109,20 @@ namespace FactoryManagementCore.Production
         }
 
 
+        /// <summary>
+        /// Добавляет новый производственный блок в контрольный список,
+        /// используя указанный цех в качестве его основного цеха.
+        /// </summary>
+        /// <param name="unit"></param>
         public void AddProductionBlock(ProductionUnit unit)
         {
             var block = new ProductionBlock(unit);
             AddProductionBlock(block);
         }
-
+        /// <summary>
+        /// Добавляет указанный производственный блок в контролльный список.
+        /// </summary>
+        /// <param name="prodBlock"></param>
         public void AddProductionBlock(ProductionBlock prodBlock)
         {
             _productionBlocks.Add(prodBlock);
@@ -101,7 +130,10 @@ namespace FactoryManagementCore.Production
 
             UpdateIO();
         }
-
+        /// <summary>
+        /// Удаляет указанный производственный цех из контрольного списка.
+        /// </summary>
+        /// <param name="prodBlock"></param>
         public void RemoveProductionBlock(ProductionBlock prodBlock)
         {
             prodBlock.IOChanged -= UpdateIO;

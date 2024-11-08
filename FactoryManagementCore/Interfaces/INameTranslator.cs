@@ -1,5 +1,9 @@
 ﻿namespace FactoryManagementCore.Interfaces
 {
+    /// <summary>
+    /// Представляет обьект, реализующий функционал перевода строк
+    /// из внутреннего программного представления в представление для отображение в UI.
+    /// </summary>
     public interface INameTranslator
     {
         /// <summary>
