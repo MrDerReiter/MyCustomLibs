@@ -1,4 +1,6 @@
-﻿namespace FactoryManagementCore.Elements
+﻿using System.Collections.Generic;
+
+namespace FactoryManagementCore.Elements
 {
     /// <summary>
     /// Базовый абстрактный класс рецепта для изготовления продукции.
@@ -21,13 +23,13 @@
         /// соответствующих входным ресурам рецепта, необходимым для одной итерации
         /// работы производственного цеха.
         /// </summary>
-        public ResourceStream[] Inputs { get; }
+        public List<ResourceStream> Inputs { get; init; }
         /// <summary>
         /// Возвращает массив обьектов ResourceStream,
         /// соответствующих выходным продуктам рецепта, произведённым в ходе одной итерации
         /// работы производственного цеха.
         /// </summary>
-        public ResourceStream[] Outputs { get; }
+        public List<ResourceStream> Outputs { get; init; }
 
         /// <summary>
         /// Базовый конструктор, используемый классами-наследниками.
@@ -36,14 +38,26 @@
         /// <param name="machine"></param>
         /// <param name="inputs"></param>
         /// <param name="outputs"></param>
-        public Recipe
+        protected Recipe
             (string name, string machine,
-            ResourceStream[] inputs, ResourceStream[] outputs)
+            List<ResourceStream> inputs, List<ResourceStream> outputs)
         {
             Name = name;
             Machine = machine;
             Inputs = inputs;
             Outputs = outputs;
+        }
+
+        /// <summary>
+        /// Специальный конструктор для EntityFramework,
+        /// оставляющий возможность донастроить вход/выход рецепта уже после его создания.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="machine"></param>
+        protected Recipe(string name, string machine)
+        {
+            Name = name;
+            Machine = machine;
         }
 
         /// <summary>

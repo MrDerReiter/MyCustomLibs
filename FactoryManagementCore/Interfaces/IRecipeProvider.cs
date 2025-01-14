@@ -9,6 +9,12 @@ namespace FactoryManagementCore.Interfaces
     public interface IRecipeProvider<out TRecipe> where TRecipe : Recipe
     {
         /// <summary>
+        /// Возвращает перечисление всех рецептов, доступных для фабрики.
+        /// </summary>
+        /// <returns></returns>
+        IEnumerable<TRecipe> GetAll();
+
+        /// <summary>
         /// Возвращает рецепт с указанным именем, если таковой имеется.
         /// Иначе вызывает исключение.
         /// </summary>

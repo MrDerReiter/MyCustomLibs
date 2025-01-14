@@ -1,16 +1,23 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Globalization;
 
 namespace FactoryManagementCore.Elements
 {
     /// <summary>
-    /// Неизменяемая структура, инкапсулирующая поток определённого ресурса
+    /// Простой value object инкапсулирующий поток определённого ресурса
     /// (тип и количество поступления в минуту). Логически связан с классом
     /// ResourceRequest и может сравниваться с экземплярами этого класса и
     /// конвертироваться в них.
     /// </summary>
-    public readonly struct ResourceStream
+    public class ResourceStream
     {
+        /// <summary>
+        /// ID для использования в качестве первичного ключа в базе данных.
+        /// </summary>
+        ///
+        public int ID { get; set; }
         /// <summary>
         /// Возвращает строку с названием ресурса.
         /// </summary>
@@ -29,9 +36,47 @@ namespace FactoryManagementCore.Elements
         /// <param name="countPerMinute"></param>
         public ResourceStream(string resource, double countPerMinute)
         {
+            if (countPerMinute < 0)
+                throw new InvalidOperationException
+                    ("Значение потока ресурса не может быть отрицательным.");
+
             Resource = resource;
             CountPerMinute = countPerMinute;
         }
+
+        /// <summary>
+        /// Создаёт новый объект ResourceStream на основе строки в формате
+        /// [ресурс] [количество] с пробелом в качестве разделителя.
+        /// Название ресурса не должно содержать пробелов, а количество должно быть
+        /// выражено корректным числом (целое или дробное с точкой в качестве десятичного разделителя).
+        /// </summary>
+        /// <param name="parsebleContent"></param>
+        /// <exception cref="FormatException"></exception>
+        public ResourceStream(string parsebleContent)
+        {
+            try
+            {
+                var parts = parsebleContent.Split(' ');
+                var resource = parts[0];
+                var count = double.Parse(parts[1], CultureInfo.InvariantCulture);
+
+                if (count < 0)
+                    throw new ArgumentException
+                        ("Значение потока ресурса не может быть отрицательным.");
+
+                Resource = resource;
+                CountPerMinute = count;
+            }
+            catch (ArgumentException) { throw; }
+            catch (Exception)
+            {
+                throw new FormatException
+                    ("Невозможно преобразовать данную строку в ResourceStream. " +
+                     "Строка должна иметь формат [ресурс, без пробелов]пробел" +
+                     "[количество(число, целое или с точкой)].");
+            }
+        }
+
 
         /// <summary>
         /// Проверяет, имеет ли указанный объект ResourceStream тот-же самый тип ресурса,
@@ -59,14 +104,16 @@ namespace FactoryManagementCore.Elements
         {
             if (left.HasSameResource(right))
                 return new ResourceStream(left.Resource, left.CountPerMinute + right.CountPerMinute);
-            else throw new InvalidOperationException("Нельзя применять операцию сложения для потоков с разными ресурсами.");
+            else throw new InvalidOperationException
+                    ("Нельзя применять операцию сложения для потоков с разными ресурсами.");
         }
 
         /// <summary>
         /// Возвращает новый экземпляр ResourceStream, у которого
         /// свойство CountPerMinute будет результатом вычитания CountPerMinute второго объекта
         /// из аналогичного свойства первого.
-        /// Выбросит исключение, если были использованы потоки с разными ресурсами.
+        /// Выбросит исключение, если были использованы потоки с разными ресурсами 
+        /// или если в результате будет получен поток с нулевым или отрицательным количеством.
         /// </summary>
         /// <param name="left"></param>
         /// <param name="right"></param>
@@ -74,9 +121,12 @@ namespace FactoryManagementCore.Elements
         /// <exception cref="InvalidOperationException"></exception>
         public static ResourceStream operator -(ResourceStream left, ResourceStream right)
         {
-            if (left.HasSameResource(right))
+            if (left.HasSameResource(right) &&
+                left.CountPerMinute > right.CountPerMinute)
                 return new ResourceStream(left.Resource, left.CountPerMinute - right.CountPerMinute);
-            else throw new InvalidOperationException("Нельзя применять операцию вычитания для потоков с разными ресурсами.");
+            else throw new InvalidOperationException
+                    ("Нельзя применять операцию вычитания для потоков с разными ресурсами или " +
+                     "вычитать больший поток из меньшего.");
         }
 
         /// <summary>
@@ -100,6 +150,9 @@ namespace FactoryManagementCore.Elements
         /// <returns></returns>
         public static ResourceStream operator /(ResourceStream left, double right)
         {
+            if (right == 0)
+                throw new DivideByZeroException("Деление на ноль невозможно.");
+
             return new ResourceStream(left.Resource, left.CountPerMinute / right);
         }
 
