@@ -19,13 +19,13 @@ namespace FactoryManagementCore.Elements
         /// </summary>
         public string Machine { get; }
         /// <summary>
-        /// Возвращает массив обьектов ResourceStream,
+        /// Возвращает список обьектов ResourceStream,
         /// соответствующих входным ресурам рецепта, необходимым для одной итерации
         /// работы производственного цеха.
         /// </summary>
         public List<ResourceStream> Inputs { get; init; }
         /// <summary>
-        /// Возвращает массив обьектов ResourceStream,
+        /// Возвращает список обьектов ResourceStream,
         /// соответствующих выходным продуктам рецепта, произведённым в ходе одной итерации
         /// работы производственного цеха.
         /// </summary>
@@ -67,7 +67,7 @@ namespace FactoryManagementCore.Elements
         public override string ToString() => Name;
 
         /// <summary>
-        /// Определяет равенство двух экземпляров Recipe или наследников этого класса.
+        /// Определяет равенство двух экземпляров-наследиков Recipe.
         /// Объекты будут считаться равными, если у них одно и то-же название рецепта.
         /// </summary>
         /// <param name="obj"></param>
