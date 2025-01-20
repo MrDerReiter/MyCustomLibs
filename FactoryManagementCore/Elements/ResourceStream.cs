@@ -50,13 +50,16 @@ namespace FactoryManagementCore.Elements
         /// Название ресурса не должно содержать пробелов, а количество должно быть
         /// выражено корректным числом (целое или дробное с точкой в качестве десятичного разделителя).
         /// </summary>
-        /// <param name="parsebleContent"></param>
+        /// <param name="parsedString"></param>
         /// <exception cref="FormatException"></exception>
-        public ResourceStream(string parsebleContent)
+        public ResourceStream(string parsedString)
         {
             try
             {
-                var parts = parsebleContent.Split(' ');
+                var parts = parsedString.Split(' ');
+                if (parts.Length != 2)
+                    throw new FormatException();
+
                 var resource = parts[0];
                 var count = double.Parse(parts[1], CultureInfo.InvariantCulture);
 
@@ -72,7 +75,7 @@ namespace FactoryManagementCore.Elements
             {
                 throw new FormatException
                     ("Невозможно преобразовать данную строку в ResourceStream. " +
-                     "Строка должна иметь формат [ресурс, без пробелов]пробел" +
+                     "Строка должна иметь формат [ресурс(без пробелов)][пробел]" +
                      "[количество(число, целое или с точкой)].");
             }
         }
@@ -113,7 +116,7 @@ namespace FactoryManagementCore.Elements
         /// свойство CountPerMinute будет результатом вычитания CountPerMinute второго объекта
         /// из аналогичного свойства первого.
         /// Выбросит исключение, если были использованы потоки с разными ресурсами 
-        /// или если в результате будет получен поток с нулевым или отрицательным количеством.
+        /// или если в результате будет получен поток с отрицательным количеством.
         /// </summary>
         /// <param name="left"></param>
         /// <param name="right"></param>

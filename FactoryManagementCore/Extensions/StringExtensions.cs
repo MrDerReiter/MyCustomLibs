@@ -1,4 +1,5 @@
-﻿using FactoryManagementCore.Production;
+﻿using FactoryManagementCore.Elements;
+using FactoryManagementCore.Production;
 
 namespace FactoryManagementCore.Extensions
 {
@@ -17,6 +18,16 @@ namespace FactoryManagementCore.Extensions
         public static string Translate(this string str)
         {
             return ProductionManager.NameTranslator.Translate(str);
+        }
+        /// <summary>
+        /// Возвращает объекет ResourceStream, созданный из данной строки (если это возможно).
+        /// Аналогичен вызову конструктора new ResourceStream(string).
+        /// </summary>
+        /// <param name="str"></param>
+        /// <returns></returns>
+        public static ResourceStream ToStream(this string str)
+        {
+            return new ResourceStream(str);
         }
     }
 }
