@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
 
 namespace CustomToolkit.Graphs
 {
@@ -13,11 +14,11 @@ namespace CustomToolkit.Graphs
         private readonly List<Edge> _incidentEdges = new List<Edge>();
 
         /// <summary>
-        /// Возвращает индекс вершины в родительском графе.
+        /// Возвращает ID вершины, позволяющий идентифицировать её в родительском графе.
         /// </summary>
         public int ID { get; }
         /// <summary>
-        /// Возвращает или задаёт имя вершины в формате строки
+        /// Возвращает или задаёт имя вершины в виде строки
         /// </summary>
         public string Name { get; set; }
         /// <summary>
@@ -35,8 +36,8 @@ namespace CustomToolkit.Graphs
         /// Возвращает перечисление вершин, из которых идёт ребро в эту вершину.
         /// </summary>
         public IEnumerable<Node> IncomingNodes => _incidentEdges
-                                                 .Where(edge => edge.Second == this)
-                                                 .Select(edge => edge.First);
+                                                  .Where(edge => edge.Second == this)
+                                                  .Select(edge => edge.First);
         /// <summary>
         /// Возваращает перечисление всех инцидентных рёбер (независимо от их направления).
         /// </summary>
@@ -58,44 +59,49 @@ namespace CustomToolkit.Graphs
         /// </summary>
         /// <param name="id">Id вершины</param>
         /// <param name="name">Имя вершины</param>
-        public Node(int id, string name = default)
+        internal Node(int id, string name = default)
         {
             ID = id;
             Name = name;
         }
 
-
-        private void Disconnect(Node otherNode)
+        /// <summary>
+        /// Удаляет ребро из исходной вершины в переданную.
+        /// </summary>
+        /// <param name="otherNode"></param>
+        internal void Disconnect(Node otherNode)
         {
             var targetEdge = _incidentEdges
-                .First(edge => edge.Nodes.Contains(otherNode));
+                .First(edge => edge.IsGoingTo(otherNode));
 
-            otherNode._incidentEdges.Remove(targetEdge);
-            _incidentEdges.Remove(targetEdge);
+                otherNode._incidentEdges.Remove(targetEdge);
+                _incidentEdges.Remove(targetEdge);
         }
-
 
         /// <summary>
         /// Соединяет вершину с другой вершиной ребром.
         /// Ребро будет направлено от этой вершины к другой.
         /// Можно задать вес ребра (необязательно).
         /// </summary>
-        /// <param name="anotherNode">Вершина, к которой нужно присоединиться</param>
+        /// <param name="otherNode">Вершина, к которой нужно присоединиться</param>
         /// <param name="weight">Вес для создаваемого ребра</param>
-        public void ConnectTo(Node anotherNode, int weight = default)
+        internal void ConnectTo(Node otherNode, int weight = default)
         {
-            var edge = new Edge(this, anotherNode, weight);
+            var edge = new Edge(this, otherNode, weight);
             _incidentEdges.Add(edge);
-            anotherNode._incidentEdges.Add(edge);
+            otherNode._incidentEdges.Add(edge);
         }
 
         /// <summary>
-        /// Обрывает связи узла с другими узлами (удаляет все связывающие его с ними рёбра).
+        /// Обрывает связи вершины с другими вершинами (удаляет все связывающие их рёбра).
         /// </summary>
-        public void Dispose()
+        internal void Dispose()
         {
-            foreach (var node in IncidentNodes)
+            foreach (var node in OutgoingNodes)
                 Disconnect(node);
+
+            foreach(var node in IncomingNodes)
+                node.Disconnect(this);
         }
 
         /// <summary>

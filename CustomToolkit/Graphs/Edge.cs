@@ -35,12 +35,20 @@ namespace CustomToolkit.Graphs
         /// <param name="first">Вершина исхода</param>
         /// <param name="second">Вершина прихода</param>
         /// <param name="weight">Вес ребра</param>
-        public Edge(Node first, Node second, int weight = default)
+        internal Edge(Node first, Node second, int weight = default)
         {
             First = first;
             Second = second;
             Weight = weight;
             Nodes = new Node[] { First, Second };
+        }
+
+        /// <summary>
+        /// Отсоединяет от ребра обе вершины, делая его неактуальным.
+        /// </summary>
+        internal void Dispose()
+        {
+            First.Disconnect(Second);
         }
 
         /// <summary>
@@ -86,10 +94,19 @@ namespace CustomToolkit.Graphs
         public Node OtherNode(Node node)
         {
             if (!IsIncident(node))
-                throw new ArgumentException("Данный узел не инцидентен данному ребру");
+                throw new ArgumentException("Данная вершина не инцидентна данному ребру");
 
             if (node == First) return Second;
             else return First;
+        }
+
+        /// <summary>
+        /// Возвращает строку в формате [ID|Name первой вершины][ => ][ID|Name второй вершины]
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
+        {
+            return First.ToString() + " => " + Second.ToString();
         }
     }
 }

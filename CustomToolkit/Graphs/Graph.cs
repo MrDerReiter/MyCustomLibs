@@ -7,7 +7,7 @@ namespace CustomToolkit.Graphs
     /// <summary>
     /// Представляет логическое отображение графа.
     /// Поддерживается создание взвешенных и направленных графов (см. описания методов и конструкторов), 
-    /// добавление/удаление/переименование вершин (но не рёбер, они управляются самим графом),
+    /// добавление/удаление/переименование вершин, добавление/удаление рёбер,
     /// а также полная очистка графа.
     /// </summary>
     public class Graph
@@ -31,14 +31,20 @@ namespace CustomToolkit.Graphs
                                           .SelectMany(node => node.IncidentEdges)
                                           .Distinct();
         /// <summary>
-        /// Возвращает вершину с указанным индексом.
+        /// Возвращает вершину с указанным ID 
+        /// (назначается графом атоматически при её создании).
         /// </summary>
         /// <param name="id">Индекс вершины</param>
         /// <returns></returns>
         public Node this[int id] => _nodes.First(node => node.ID == id);
         /// <summary>
-        /// Возвращает ребро, направленное от вершины с первым индексом к вершине со вторым индексом.
-        /// При отсутствии такового будет выброшено исключение.
+        /// Возвращает первую найденную вершину с указанным именем.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public Node this[string name] => _nodes.First(node => node.Name == name);
+        /// <summary>
+        /// Возвращает ребро, направленное от вершины с первым ID к вершине со вторым ID.
         /// </summary>
         /// <param name="start"></param>
         /// <param name="end"></param>
@@ -46,6 +52,16 @@ namespace CustomToolkit.Graphs
         public Edge this[int start, int end] => Edges
                                                .First(edge => edge.First.ID == start &&
                                                               edge.Second.ID == end);
+        /// <summary>
+        /// Возвращает ребро, направленное от вершины с первым именем к вершине со вторым, 
+        /// если таковое имеется.
+        /// </summary>
+        /// <param name="start"></param>
+        /// <param name="end"></param>
+        /// <returns></returns>
+        public Edge this[string start, string end] => Edges
+                                               .First(edge => edge.First.Name == start &&
+                                                              edge.Second.Name == end);
 
 
         /// <summary>
@@ -58,7 +74,7 @@ namespace CustomToolkit.Graphs
 
         /// <summary>
         /// Возвращает граф с указанным количеством вершин.
-        /// Вершины будут проиндексированы начиная с нуля.
+        /// Вершинам будут автоматически назначены ID, начиная с нуля.
         /// У вершин изначально не будет ни имён, ни ребёр.
         /// </summary>
         /// <param name="nodesCount">Количество вершин</param>
@@ -66,7 +82,7 @@ namespace CustomToolkit.Graphs
         {
             _nodes = Enumerable
                     .Range(0, nodesCount)
-                    .Select((index) => new Node(index))
+                    .Select((id) => new Node(id))
                     .ToList();
         }
 
@@ -105,21 +121,57 @@ namespace CustomToolkit.Graphs
         /// <exception cref="ArgumentException">В списке вершин графа не найдена вершина с указнным именем</exception>
         public void Connect(string name1, string name2, int weight = default)
         {
-            try
-            {
-                _nodes.First(node => node.Name == name1)
-                      .ConnectTo(_nodes.First(node => node.Name == name2), weight);
-            }
-            catch
-            {
-                throw new ArgumentException
-                    ("В графе нет вершин с указанными именами, " +
-                     "либо есть только одна подходящая; соединение невозможно.");
-            }
+            _nodes.First(node => node.Name == name1)
+                  .ConnectTo(_nodes.First(node => node.Name == name2), weight);
         }
 
         /// <summary>
-        /// Добавляет новую вершину и назначает ей следующий свободный индекс.
+        /// Удаляет указанное ребро, отсоединяя друг от друга его вершины.
+        /// </summary>
+        /// <param name="edge"></param>
+        public void Disconnect(Edge edge)
+        {
+            edge.Dispose();
+        }
+
+        /// <summary>
+        /// Удаляет рёбро между вершинами с указанными ID, если таковое имеется 
+        /// (с учётом направления, от первого ко второму).
+        /// </summary>
+        /// <param name="id1"></param>
+        /// <param name="id2"></param>
+        public void Disconnect(int id1, int id2)
+        {
+            this[id1, id2].Dispose();
+        }
+
+        /// <summary>
+        /// Удаляет рёбро между вершинами с указанными именами, если таковые имеются 
+        /// (с учётом направления, от первого ко второму).
+        /// </summary>
+        /// <param name="name1"></param>
+        /// <param name="name2"></param>
+        public void Disconnect(string name1, string name2)
+        {
+            this[name1, name2].Dispose();
+        }
+
+        /// <summary>
+        /// Добавляет новую вершину и назначает ей указанный ID (не должен повторять уже имеющиеся).
+        /// Можно указать имя для новой вершины (необязательно).
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="name"></param>
+        public void AddNode(int id, string name = default)
+        {
+            if (_nodes.Select(node => node.ID).Contains(id))
+                throw new ArgumentException("В графе уже есть вершина с таким ID");
+
+            _nodes.Add(new Node(id, name));
+        }
+
+        /// <summary>
+        /// Добавляет новую вершину и автоматически назначает ей подходящий индекс.
         /// Можно указать имя для новой вершины (необязательно).
         /// </summary>
         /// <param name="name">Имя для новой вершины</param>
@@ -129,35 +181,38 @@ namespace CustomToolkit.Graphs
         }
 
         /// <summary>
-        /// Удаляет указанный узел и все рёбра, связывающие его с другими узлами.
-        /// Если указанный узел отсутсвует, будет выброшено исключение.
+        /// Удаляет указанную вершину и все рёбра, связывающие её с другими вершинами.
+        /// Если данная вершина в графе отсутствует, будет выброшено исключение.
         /// </summary>
         /// <param name="node"></param>
         public void RemoveNode(Node node)
         {
-            if (_nodes.Contains(node))
-                throw new ArgumentException("Узел не найден.");
-
             node.Dispose();
             _nodes.Remove(node);
         }
 
         /// <summary>
-        /// Удаляет узел с указанным именем и все рёбра, связывающие его с другими узлами.
-        /// Если узел с указанным именем отсутствует, будет выброшено исключение.
+        /// Удаляет вершину с указанным именем и все рёбра, связывающие её с другими узлами.
+        /// Если вершина с указанным именем отсутствует, будет выброшено исключение.
+        /// </summary>
+        /// <param id="id"></param>
+        public void RemoveNode(int id)
+        {
+            RemoveNode(this[id]);
+        }
+
+        /// <summary>
+        /// Удаляет вершину с указанным именем и все рёбра, связывающие её с другими узлами.
+        /// Если вершина с указанным именем отсутствует, будет выброшено исключение.
         /// </summary>
         /// <param name="name"></param>
         public void RemoveNode(string name)
         {
-            if (!NodeNames.Contains(name))
-                throw new ArgumentException("Не найден узел с таким именем.");
-
-            var targetNode = _nodes.First(node => node.Name == name);
-            RemoveNode(targetNode);
+            RemoveNode(this[name]);
         }
 
         /// <summary>
-        /// Удаляет из графа все вершины и рёбра
+        /// Удаляет из графа все вершины и рёбра.
         /// </summary>
         public void Clear()
         {
