@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 
 namespace CustomToolkit.Images
@@ -11,7 +12,7 @@ namespace CustomToolkit.Images
     {
         private static void CheckDir(string dir)
         {
-            if(!Directory.Exists(dir))
+            if (!Directory.Exists(dir))
                 Directory.CreateDirectory(dir);
         }
 
@@ -53,16 +54,15 @@ namespace CustomToolkit.Images
         }
 
         /// <summary>
-        /// Возвращает поток, содержащий это изображение в его исходном формате.
+        /// Возвращает поток, содержащий это изображение в формате JPEG.
         /// </summary>
-        /// <param name="pict"></param>
+        /// <param name="source"></param>
         /// <returns></returns>
-        public static Stream ToStream(this Bitmap pict)
+        public static Stream ToStream(this Bitmap source)
         {
-            var format = pict.RawFormat;
             var stream = new MemoryStream();
 
-            pict.Save(stream, format);
+            source.Save(stream, ImageFormat.Jpeg);
             return stream;
         }
     }
