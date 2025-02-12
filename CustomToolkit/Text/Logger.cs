@@ -5,15 +5,19 @@ namespace CustomToolkit.Text
 {
     /// <summary>
     /// Простой статический логгер, записывающий лог в текстовый файл
-    /// в текущей директории приложения.
+    /// в текущей директории приложения (поведение по умолчанию);
+    /// либо использующий для записи заданную функцию.
+    /// Поведение можно настроить при вызове метода BeginLog().
     /// </summary>
     public static class Logger
     {
-        private static readonly string _path = 
+        private static readonly string _path =
             Environment.CurrentDirectory + "\\log.txt";
 
-        private static bool LogIsNotBegan => _writer is null;
+        private static bool LogIsNotBegan => _writerFunc is null && _writer is null;
+        private static bool UsingDelegate => _writerFunc != null;
         private static StreamWriter _writer;
+        private static Action<string> _writerFunc;
         private static int _lineCounter;
 
 
@@ -34,6 +38,24 @@ namespace CustomToolkit.Text
         }
 
         /// <summary>
+        /// Альтернативная версия инициализации логгера, позволяющая
+        /// использовать для логирования заданную функцию записи;
+        /// если реализация по умолчанию (запись в текстовый файл) не подходит.
+        /// Также как и реализация по умолчанию должна быть вызвана 
+        /// до любых других методов логгера.
+        /// </summary>
+        /// <param name="writeHandler">Делегат, реализующий запись в лог</param>
+        public static void BeginLog(Action<string> writeHandler)
+        {
+            _writerFunc = writeHandler;
+
+            _writerFunc("Начало логирования");
+            AddSpacing();
+
+            _lineCounter = 1;
+        }
+
+        /// <summary>
         /// Завершает логирование и освобождает поток записи.
         /// Рекомендуется вызвать в конце работы логгера,
         /// если работа самой программы на этом не закачивается.
@@ -43,9 +65,17 @@ namespace CustomToolkit.Text
             if (LogIsNotBegan) return;
 
             AddSpacing();
-            _writer.WriteLine("Логирование завершено");
-            _writer.Close();
-            _writer = null;
+            if(UsingDelegate)
+            {
+                _writerFunc("Логирование завершено");
+                _writerFunc = null;
+            }
+            else
+            {
+                _writer.WriteLine("Логирование завершено");
+                _writer.Close();
+                _writer = null;
+            }
         }
 
         /// <summary>
@@ -56,7 +86,9 @@ namespace CustomToolkit.Text
         {
             if (LogIsNotBegan) return;
 
-            _writer.WriteLine(_lineCounter + ". " + message);
+            if (UsingDelegate) _writerFunc(_lineCounter + ". " + message);
+            else _writer.WriteLine(_lineCounter + ". " + message);
+
             _lineCounter++;
         }
 
@@ -67,7 +99,8 @@ namespace CustomToolkit.Text
         {
             if (LogIsNotBegan) return;
 
-            _writer.WriteLine();
+            if (UsingDelegate) _writerFunc("\n");
+            else _writer.WriteLine();
         }
     }
 }
