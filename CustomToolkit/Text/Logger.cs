@@ -4,78 +4,107 @@ using System.IO;
 namespace CustomToolkit.Text
 {
     /// <summary>
-    /// Простой статический логгер, записывающий лог в текстовый файл
-    /// в текущей директории приложения (поведение по умолчанию);
-    /// либо использующий для записи заданную функцию.
-    /// Поведение можно настроить при вызове метода BeginLog().
+    /// Универсальный статический логгер. Поддерживает лгирование в консоль, 
+    /// в текстовый файл; а также логирование с использованием пользовательской функции.
+    /// Поведение можно (и нужно) настроить с помощью FluentAPI,
+    /// начав с вызова метода BeginLog().
     /// </summary>
     public static class Logger
     {
-        private static readonly string _path =
-            Environment.CurrentDirectory + "\\log.txt";
+        /// <summary>
+        /// Настроечный обьект,позволяющий настроить по цепи способ логирования для 
+        /// класса Logger, после вызова метода BeginLog().
+        /// </summary>
+        public class LoggerConfigurator
+        {
+            internal LoggerConfigurator() { }
 
-        private static bool LogIsNotBegan => _writerFunc is null && _writer is null;
-        private static bool UsingDelegate => _writerFunc != null;
+
+            /// <summary>
+            /// Настраивает логгер для записи в консоль.
+            /// </summary>
+            public void ToConsole()
+            {
+                _writeFunc = Console.WriteLine;
+                Init();
+            }
+
+            /// <summary>
+            /// Настраивает логгер для записи в файл. Опиционально можно указать путь к файлу.
+            /// По умолчанию создаётся/перезаписывается файл Log.txt в текущей директории приложения.
+            /// </summary>
+            /// <param name="path">Путь к файлу для записи лога</param>
+            public void ToFile(string path = "Log.txt")
+            {
+                _writer = new StreamWriter(path, false);
+                _writeFunc = Console.WriteLine;
+                Init();
+            }
+
+            /// <summary>
+            /// Настраивает логгер для записи с использованием заданной функции.
+            /// </summary>
+            /// <param name="writeFunc">Делегат, реализующий запись</param>
+            public void WithDelegate(Action<string> writeFunc)
+            {
+                _writeFunc = writeFunc;
+                Init();
+            }
+        }
+
+
+        private static bool _logIsBegan;
+        private static bool LogIsNotBegan => !_logIsBegan;
         private static StreamWriter _writer;
-        private static Action<string> _writerFunc;
+        private static Action<string> _writeFunc;
         private static int _lineCounter;
 
 
+        private static void Init()
+        {
+            _writeFunc("Начало логирования");
+            AddSpacing();
+
+            _lineCounter = 1;
+            _logIsBegan = true;
+        }
+
+        private static void Dispose()
+        {
+            _writer?.Close();
+            _writeFunc = null;
+            _logIsBegan = false;
+            _lineCounter = 0;
+        }
+
+
         /// <summary>
-        /// Инициализирует счётчик записей; открывает поток для записи в текстовый файл.
+        /// Активирует логгер и возвращает объект LoggerConfigurator для 
+        /// дальнейшей настройки в стиле Method Chaining.
         /// Данный метод должен быть вызван перед использованием всех остальных.
         /// Вызов любого метода логгера без предварительного вызова BeginLog()
-        /// ничего не делает.
+        /// ничего не делает; ровно как и вызов этого метода без использования дальнейшей настройки.
         /// </summary>
-        public static void BeginLog()
+        public static LoggerConfigurator BeginLog()
         {
-            _writer = new StreamWriter(_path, false);
-
-            _writer.WriteLine("Начало логирования");
-            AddSpacing();
-
-            _lineCounter = 1;
+            return new LoggerConfigurator();
         }
 
         /// <summary>
-        /// Альтернативная версия инициализации логгера, позволяющая
-        /// использовать для логирования заданную функцию записи;
-        /// если реализация по умолчанию (запись в текстовый файл) не подходит.
-        /// Также как и реализация по умолчанию должна быть вызвана 
-        /// до любых других методов логгера.
-        /// </summary>
-        /// <param name="writeHandler">Делегат, реализующий запись в лог</param>
-        public static void BeginLog(Action<string> writeHandler)
-        {
-            _writerFunc = writeHandler;
-
-            _writerFunc("Начало логирования");
-            AddSpacing();
-
-            _lineCounter = 1;
-        }
-
-        /// <summary>
-        /// Завершает логирование и освобождает поток записи.
-        /// Рекомендуется вызвать в конце работы логгера,
+        /// Завершает логирование, освобождает поток записи (если он был использован) 
+        /// и сбрасывает все параметры. Рекомендуется вызвать в конце работы логгера,
         /// если работа самой программы на этом не закачивается.
+        /// Для продолжения логирования после вызова этого метода, необходима 
+        /// повторная инициализация через BeginLog().
         /// </summary>
         public static void EndLog()
         {
             if (LogIsNotBegan) return;
 
             AddSpacing();
-            if(UsingDelegate)
-            {
-                _writerFunc("Логирование завершено");
-                _writerFunc = null;
-            }
-            else
-            {
-                _writer.WriteLine("Логирование завершено");
-                _writer.Close();
-                _writer = null;
-            }
+            _writeFunc("Логирование завершено");
+
+            Dispose();
         }
 
         /// <summary>
@@ -85,11 +114,7 @@ namespace CustomToolkit.Text
         public static void Log(string message)
         {
             if (LogIsNotBegan) return;
-
-            if (UsingDelegate) _writerFunc(_lineCounter + ". " + message);
-            else _writer.WriteLine(_lineCounter + ". " + message);
-
-            _lineCounter++;
+            _writeFunc($"{_lineCounter++}. {message}");
         }
 
         /// <summary>
@@ -98,9 +123,7 @@ namespace CustomToolkit.Text
         public static void AddSpacing()
         {
             if (LogIsNotBegan) return;
-
-            if (UsingDelegate) _writerFunc("\n");
-            else _writer.WriteLine();
+            _writeFunc(Environment.NewLine);
         }
     }
 }
