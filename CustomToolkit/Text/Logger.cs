@@ -57,7 +57,7 @@ namespace CustomToolkit.Text
         private static bool LogIsNotBegan => !_logIsBegan;
         private static StreamWriter _writer;
         private static Action<string> _writeFunc;
-        private static int _lineCounter;
+        private static uint _lineCounter;
 
 
         private static void Init()

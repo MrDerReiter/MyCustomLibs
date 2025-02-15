@@ -10,13 +10,6 @@ namespace CustomToolkit.Images
     /// </summary>
     public static class ImageWrapper
     {
-        /// <summary>
-        /// Разрезает изображение на указанное количество 
-        /// частей по горизонтали и возвращает массив с этими изображениями.
-        /// </summary>
-        /// <param name="source"></param>
-        /// <param name="chunks"></param>
-        /// <returns></returns>
         internal static Bitmap[] SliceH(Bitmap source, int chunks)
         {
             var result = new Bitmap[chunks];
@@ -37,14 +30,6 @@ namespace CustomToolkit.Images
             return result;
         }
 
-        /// <summary>
-        /// Разрезает изображение на указанное количество 
-        /// частей по вертикали и возвращает массив с этими изображениями.
-        /// </summary>
-        /// <param name="source"></param>
-        /// <param name="chunks"></param>
-        /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
         internal static Bitmap[] SliceV(Bitmap source, int chunks)
         {
             var result = new Bitmap[chunks];
