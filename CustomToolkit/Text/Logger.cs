@@ -23,10 +23,11 @@ namespace CustomToolkit.Text
             /// <summary>
             /// Настраивает логгер для записи в консоль.
             /// </summary>
-            public void ToConsole()
+            public LoggerConfigurator ToConsole()
             {
                 _writeFunc = Console.WriteLine;
-                Init();
+                _logInProgress = true;
+                return this;
             }
 
             /// <summary>
@@ -34,47 +35,57 @@ namespace CustomToolkit.Text
             /// По умолчанию создаётся/перезаписывается файл Log.txt в текущей директории приложения.
             /// </summary>
             /// <param name="path">Путь к файлу для записи лога</param>
-            public void ToFile(string path = "Log.txt")
+            public LoggerConfigurator ToFile(string path = "Log.txt")
             {
                 _writer = new StreamWriter(path, false);
                 _writeFunc = Console.WriteLine;
-                Init();
+                _logInProgress = true;
+                return this;
             }
 
             /// <summary>
             /// Настраивает логгер для записи с использованием заданной функции.
             /// </summary>
             /// <param name="writeFunc">Делегат, реализующий запись</param>
-            public void WithDelegate(Action<string> writeFunc)
+            public LoggerConfigurator WithDelegate(Action<string> writeFunc)
             {
                 _writeFunc = writeFunc;
-                Init();
+                _logInProgress = true;
+                return this;
+            }
+
+            /// <summary>
+            /// Запускает или отключает счётчик строк в логе (добавление номера записи лога в её начале).
+            /// По умолчанию строки не нумеруются. После вызова нумерация 
+            /// всегда начинается с единицы. При передаче false в качестве аргумента 
+            /// нумерация прекращается (если была активна), и при следующей активации 
+            /// счётчик будет сброшен.
+            /// </summary>
+            /// <param name="isCounting">Указывает, нужно-ли включить нумерацию, или отключить её. 
+            /// Если параметр не указан явно, будет true.</param>
+            /// <returns></returns>
+            public LoggerConfigurator CountLines(bool isCounting = true)
+            {
+                Logger.CountLines(isCounting);
+                return this;
             }
         }
 
 
-        private static bool _logIsBegan;
-        private static bool LogIsNotBegan => !_logIsBegan;
+        private static bool _logInProgress;
+        private static bool LogIsNotBegan => !_logInProgress;
         private static StreamWriter _writer;
         private static Action<string> _writeFunc;
+        private static bool _isCounting;
         private static uint _lineCounter;
 
-
-        private static void Init()
-        {
-            _writeFunc("Начало логирования");
-            AddSpacing();
-
-            _lineCounter = 1;
-            _logIsBegan = true;
-        }
 
         private static void Dispose()
         {
             _writer?.Close();
-            _writeFunc = null;
-            _logIsBegan = false;
-            _lineCounter = 0;
+            _writeFunc = default;
+            _logInProgress = false;
+            _lineCounter = default;
         }
 
 
@@ -100,10 +111,6 @@ namespace CustomToolkit.Text
         public static void EndLog()
         {
             if (LogIsNotBegan) return;
-
-            AddSpacing();
-            _writeFunc("Логирование завершено");
-
             Dispose();
         }
 
@@ -114,7 +121,7 @@ namespace CustomToolkit.Text
         public static void Log(string message)
         {
             if (LogIsNotBegan) return;
-            _writeFunc($"{_lineCounter++}. {message}");
+            _writeFunc($"{(_isCounting ? _lineCounter++ + ". " : "")}{message}");
         }
 
         /// <summary>
@@ -124,6 +131,21 @@ namespace CustomToolkit.Text
         {
             if (LogIsNotBegan) return;
             _writeFunc(Environment.NewLine);
+        }
+
+        /// <summary>
+        /// Запускает или отключает счётчик строк в логе (добавление номера записи лога в её начале).
+        /// По умолчанию строки не нумеруются. После вызова нумерация 
+        /// всегда начинается с единицы. При передаче false в качестве аргумента 
+        /// нумерация прекращается (если была активна), и при следующей активации 
+        /// счётчик будет сброшен.
+        /// </summary>
+        /// <param name="isCounting">Указывает, нужно-ли включить нумерацию, или отключить её. 
+        /// Если параметр не указан явно, будет true.</param>
+        public static void CountLines(bool isCounting = true)
+        {
+            _lineCounter = isCounting ? 1U : default;
+            _isCounting = isCounting;
         }
     }
 }
